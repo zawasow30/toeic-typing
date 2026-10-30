@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTypingGame } from './hooks/useTypingGame';
-import { Keyboard, ArrowRight, RotateCcw, Trophy, FolderOpen, Smartphone } from 'lucide-react';
+import { Keyboard, ArrowRight, RotateCcw, Trophy, FolderOpen } from 'lucide-react';
 import { VirtualKeyboard } from './VirtualKeyboard';
 
 // スマホ・タブレット（指で操作する端末）ではアプリ内キーボードを表示する
@@ -16,8 +16,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-dvh bg-[#09090b] text-[#fafafa] flex flex-col font-sans selection:bg-zinc-800 selection:text-white safe-x">
-      {isTouchDevice && <RotateNotice />}
+    <div className="app-frame bg-[#09090b] text-[#fafafa] flex flex-col font-sans selection:bg-zinc-800 selection:text-white">
 
       {/* macOS タイトルバー対応ヘッダー (app-drag: ウィンドウ移動可能, ボタン類: app-no-drag) */}
       <header className={`w-full border-b border-zinc-800/60 bg-[#09090b]/80 backdrop-blur-md sticky top-0 z-50 app-drag select-none ${game.status === 'playing' && isTouchDevice ? 'hidden' : ''}`}>
@@ -49,16 +48,6 @@ function App() {
         {game.status === 'playing' && <Play game={game} />}
         {game.status === 'result' && <Result game={game} />}
       </main>
-    </div>
-  );
-}
-
-function RotateNotice() {
-  return (
-    <div className="rotate-notice fixed inset-0 z-[100] bg-[#09090b] flex-col items-center justify-center gap-4 text-center px-8">
-      <Smartphone className="w-10 h-10 text-zinc-500 rotate-90" />
-      <p className="text-base font-medium text-zinc-200">端末を横向きにしてください</p>
-      <p className="text-sm text-zinc-500">TOEIC Typing は横画面で遊ぶように設計されています</p>
     </div>
   );
 }
@@ -161,7 +150,7 @@ function Play({ game }) {
   );
 
   return (
-    <div className={`w-full flex flex-col items-center ${isTouchDevice ? 'h-[calc(100dvh-1.5rem)] gap-3' : 'justify-center py-24 space-y-16'}`}>
+    <div className={`w-full flex flex-col items-center ${isTouchDevice ? 'h-[calc(var(--app-h)-1.5rem)] gap-3' : 'justify-center py-24 space-y-16'}`}>
       {isTouchDevice && (
         <div className="w-full flex items-center justify-between">
           {stats}

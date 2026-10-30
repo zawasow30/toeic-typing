@@ -1,8 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
-/* 横向きスマホなど高さの低い画面 */
-@custom-variant short (@media (max-height: 500px));
+/* 横向きスマホなど高さの低い画面（縦持ちで擬似横向き表示している時も含む） */
+@custom-variant short {
+  @media (max-height: 500px) {
+    @slot;
+  }
+  @media (orientation: portrait) and (pointer: coarse) and (max-width: 500px) {
+    @slot;
+  }
+}
 
 @theme {
   --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
@@ -23,20 +30,38 @@
   }
 }
 
+/* アプリ画面の高さ（擬似横向き時は端末の横幅が高さになる） */
+:root {
+  --app-h: 100dvh;
+}
+
 /* 横向き時のノッチ・ホームインジケータを避ける */
-.safe-x {
+.app-frame {
+  min-height: var(--app-h);
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* 縦向きのときだけ「横向きにしてください」を表示 */
-.rotate-notice {
-  display: none;
-}
-@media (orientation: portrait) {
-  .rotate-notice {
-    display: flex;
+/* 縦持ちのスマホでは、端末の左側を下にした横向き画面として 90° 回転して表示する */
+@media (orientation: portrait) and (pointer: coarse) {
+  :root {
+    --app-h: 100vw;
+  }
+  .app-frame {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100dvh;
+    height: 100vw;
+    min-height: 0;
+    overflow-y: auto;
+    transform-origin: top left;
+    transform: translateX(100vw) rotate(90deg);
+    /* 回転後: 上端のノッチ → 右, 下端のホームインジケータ → 左 */
+    padding-left: env(safe-area-inset-bottom);
+    padding-right: env(safe-area-inset-top);
+    padding-bottom: 0;
   }
 }
 
