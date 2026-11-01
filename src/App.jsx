@@ -8,6 +8,21 @@ import { getListProgress } from './wordProgress';
 // スマホ・タブレット（指で操作する端末）ではアプリ内キーボードを表示する
 const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
 
+// リストの進捗率ごとの色（below: この % 未満に適用）
+const PROGRESS_COLORS = [
+  { below: 25, card: 'border-red-900/60 bg-red-950/20', text: 'text-red-400', bar: 'bg-red-400' },
+  { below: 50, card: 'border-orange-900/60 bg-orange-950/20', text: 'text-orange-400', bar: 'bg-orange-400' },
+  { below: 75, card: 'border-yellow-900/60 bg-yellow-950/20', text: 'text-yellow-400', bar: 'bg-yellow-400' },
+  { below: 100, card: 'border-lime-900/60 bg-lime-950/20', text: 'text-lime-400', bar: 'bg-lime-400' },
+  { below: Infinity, card: 'border-emerald-800/70 bg-emerald-950/30', text: 'text-emerald-400', bar: 'bg-emerald-400' }
+];
+const NO_PROGRESS_COLOR = { card: 'border-zinc-800', text: 'text-zinc-500', bar: 'bg-zinc-300' };
+
+function getProgressColor(percent) {
+  if (!percent) return NO_PROGRESS_COLOR;
+  return PROGRESS_COLORS.find(color => percent < color.below);
+}
+
 function App() {
   const game = useTypingGame();
 
@@ -107,22 +122,24 @@ function Home({ onStart }) {
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 short:grid-cols-10 gap-4 short:gap-2">
         {LIST_IDS.map(num => {
           const progress = listProgress[num];
+          const percent = progress ? (progress.total / progress.max) * 100 : 0;
+          const color = getProgressColor(percent);
           return (
             <button
               key={num}
               onClick={() => onStart(num, hardMode)}
-              className="group flex flex-col items-center justify-center p-4 short:p-1.5 short:h-14 border border-zinc-800 rounded-xl hover:border-zinc-600 hover:bg-zinc-900/50 active:bg-zinc-900 transition-all duration-200 ease-out"
+              className={`group flex flex-col items-center justify-center p-4 short:p-1.5 short:h-14 border ${color.card} rounded-xl hover:border-zinc-600 hover:bg-zinc-900/50 active:bg-zinc-900 transition-all duration-200 ease-out`}
             >
               <span className="text-lg short:text-sm short:leading-4 font-medium text-zinc-300 group-hover:text-white transition-colors duration-200">
                 <span className="short:hidden">List </span>{num}
               </span>
-              <span className="text-xs short:text-[10px] short:leading-3 font-mono text-zinc-500 mt-2 short:mt-0.5">
+              <span className={`text-xs short:text-[10px] short:leading-3 font-mono ${color.text} mt-2 short:mt-0.5`}>
                 {progress ? `${progress.total}/${progress.max}` : '\u00a0'}
               </span>
               <span className="w-full h-0.5 mt-2 short:mt-1 rounded-full bg-zinc-800 overflow-hidden">
                 <span
-                  className="block h-full bg-zinc-300"
-                  style={{ width: progress ? `${(progress.total / progress.max) * 100}%` : 0 }}
+                  className={`block h-full ${color.bar}`}
+                  style={{ width: `${percent}%` }}
                 />
               </span>
             </button>

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { LIST_IDS, fetchWordList } from '../wordLists';
-import { adjustWordProgress } from '../wordProgress';
+import { adjustWordProgress, sortByProgress } from '../wordProgress';
 
 const TIME_LIMIT = 120; // 120 seconds per game
 
@@ -35,10 +35,9 @@ export function useTypingGame() {
         parsedWords = await fetchWordList(listId);
       }
         
-      // Shuffle words for the game
-      const shuffled = [...parsedWords].sort(() => Math.random() - 0.5);
-      setWords(shuffled);
-      return shuffled;
+      const orderedWords = sortByProgress(parsedWords);
+      setWords(orderedWords);
+      return orderedWords;
     } catch (error) {
       console.error('Failed to load words:', error);
       return [];

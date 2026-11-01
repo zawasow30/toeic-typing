@@ -20,6 +20,13 @@ export function adjustWordProgress(word, delta) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
 }
 
+// 進捗が低い単語から順に並べる（同じ進捗の中はランダム）
+export function sortByProgress(words) {
+  const progress = loadProgress();
+  const shuffled = [...words].sort(() => Math.random() - 0.5);
+  return shuffled.sort((a, b) => (progress[wordKey(a)] ?? 0) - (progress[wordKey(b)] ?? 0));
+}
+
 export function getListProgress(words) {
   const progress = loadProgress();
   return {
