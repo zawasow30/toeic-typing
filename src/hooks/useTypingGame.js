@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { LIST_IDS, fetchWordList } from '../wordLists';
+import { adjustWordProgress } from '../wordProgress';
 
 const TIME_LIMIT = 120; // 120 seconds per game
 
@@ -20,52 +22,17 @@ export function useTypingGame() {
   const [showHint, setShowHint] = useState(false);
   const [isRandomMode, setIsRandomMode] = useState(false);
   const isTimeUp = useRef(false);
+  const hintShownForWord = useRef(false);
 
   // Fetch and parse words
   const loadWords = async (listId) => {
     try {
-      const fetchList = async (id) => {
-        let text = '';
-        if (window.electronAPI?.readWordFile) {
-          const res = await window.electronAPI.readWordFile(`${id}.txt`);
-          if (res.success) {
-            text = res.content;
-          } else {
-            console.error(`Failed to read word list ${id} via Electron:`, res.error);
-            return [];
-          }
-        } else {
-          const response = await fetch(`words/${id}.txt`);
-          text = await response.text();
-        }
-        
-        if (text.trim().toLowerCase().startsWith('<!doctype html>')) {
-          console.error(`Word list ${id} not found.`);
-          return [];
-        }
-        
-        return text
-          .split('\n')
-          .map(line => line.trim())
-          .filter(line => line.length > 0)
-          .map(line => {
-            const [english, ...japaneseArr] = line.split(',');
-            return {
-              english: english.trim(),
-              japanese: japaneseArr.join(',').trim(),
-              listId: id
-            };
-          })
-          .filter(w => w.english.length > 0);
-      };
-
       let parsedWords = [];
       if (listId === 'random') {
-        const promises = Array.from({ length: 20 }, (_, i) => fetchList(i + 1));
-        const results = await Promise.all(promises);
+        const results = await Promise.all(LIST_IDS.map(fetchWordList));
         parsedWords = results.flat();
       } else {
-        parsedWords = await fetchList(listId);
+        parsedWords = await fetchWordList(listId);
       }
         
       // Shuffle words for the game
@@ -91,6 +58,7 @@ export function useTypingGame() {
     setTimeLeft(listId === 'random' ? 300 : TIME_LIMIT);
     setCurrentIndex(0);
     isTimeUp.current = false;
+    hintShownForWord.current = false;
     
     const firstWord = loadedWords[0].english;
     setTyped('');
@@ -123,6 +91,11 @@ export function useTypingGame() {
     
     const hintTimer = setTimeout(() => {
       setShowHint(true);
+      // ヒントが出た時点で減らす（出た回は途中で Quit しても 1 減る）
+      if (words[currentIndex] && !hintShownForWord.current) {
+        hintShownForWord.current = true;
+        adjustWordProgress(words[currentIndex], -1);
+      }
       setHintedWords(prev => {
         if (words[currentIndex] && !prev.find(w => w.english === words[currentIndex].english)) {
           return [...prev, words[currentIndex]];
@@ -154,6 +127,12 @@ export function useTypingGame() {
         // Word finished
         setScore(prev => prev + newTyped.length * 10);
         
+        // Hard Mode 以外は単語が見えているので進捗に数えない
+        if (isHardMode && !hintShownForWord.current) {
+          adjustWordProgress(words[currentIndex], 1);
+        }
+        hintShownForWord.current = false;
+        
         if (isTimeUp.current) {
           setStatus('result');
           return;
@@ -181,7 +160,7 @@ export function useTypingGame() {
         return prev;
       });
     }
-  }, [status, untyped, typed, currentIndex, words]);
+  }, [status, untyped, typed, currentIndex, words, isHardMode]);
 
   const handleKeyDown = useCallback((e) => {
     if (status !== 'playing') return;

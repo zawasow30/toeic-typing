@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useTypingGame } from './hooks/useTypingGame';
 import { Keyboard, ArrowRight, RotateCcw, Trophy, FolderOpen } from 'lucide-react';
 import { VirtualKeyboard } from './VirtualKeyboard';
+import { LIST_IDS, fetchWordList } from './wordLists';
+import { getListProgress } from './wordProgress';
 
 // スマホ・タブレット（指で操作する端末）ではアプリ内キーボードを表示する
 const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
@@ -61,8 +63,23 @@ function Home({ onStart }) {
   useEffect(() => {
     localStorage.setItem('toeic_typing_hard_mode', JSON.stringify(hardMode));
   }, [hardMode]);
-  // lists 1 to 20 based on words folder
-  const lists = Array.from({ length: 20 }, (_, i) => i + 1);
+
+  const [listProgress, setListProgress] = useState({});
+
+  useEffect(() => {
+    let cancelled = false;
+    LIST_IDS.forEach(async (id) => {
+      try {
+        const progress = getListProgress(await fetchWordList(id));
+        if (!cancelled && progress.max > 0) {
+          setListProgress(prev => ({ ...prev, [id]: progress }));
+        }
+      } catch (error) {
+        console.error(`Failed to load progress for list ${id}:`, error);
+      }
+    });
+    return () => { cancelled = true; };
+  }, []);
   
   return (
     <div className="max-w-xl short:max-w-3xl mx-auto w-full space-y-12 short:space-y-4">
@@ -88,20 +105,29 @@ function Home({ onStart }) {
       </div>
       
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 short:grid-cols-10 gap-4 short:gap-2">
-        {lists.map(num => (
-          <button
-            key={num}
-            onClick={() => onStart(num, hardMode)}
-            className="group flex flex-col items-center justify-center p-4 short:p-2 short:h-12 border border-zinc-800 rounded-xl hover:border-zinc-600 hover:bg-zinc-900/50 active:bg-zinc-900 transition-all duration-200 ease-out"
-          >
-            <span className="text-lg short:text-sm font-medium text-zinc-300 group-hover:text-white transition-colors duration-200">
-              <span className="short:hidden">List </span>{num}
-            </span>
-            <span className="text-xs text-zinc-500 mt-2 flex items-center gap-1 short:hidden">
-              Start <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-            </span>
-          </button>
-        ))}
+        {LIST_IDS.map(num => {
+          const progress = listProgress[num];
+          return (
+            <button
+              key={num}
+              onClick={() => onStart(num, hardMode)}
+              className="group flex flex-col items-center justify-center p-4 short:p-1.5 short:h-14 border border-zinc-800 rounded-xl hover:border-zinc-600 hover:bg-zinc-900/50 active:bg-zinc-900 transition-all duration-200 ease-out"
+            >
+              <span className="text-lg short:text-sm short:leading-4 font-medium text-zinc-300 group-hover:text-white transition-colors duration-200">
+                <span className="short:hidden">List </span>{num}
+              </span>
+              <span className="text-xs short:text-[10px] short:leading-3 font-mono text-zinc-500 mt-2 short:mt-0.5">
+                {progress ? `${progress.total}/${progress.max}` : '\u00a0'}
+              </span>
+              <span className="w-full h-0.5 mt-2 short:mt-1 rounded-full bg-zinc-800 overflow-hidden">
+                <span
+                  className="block h-full bg-zinc-300"
+                  style={{ width: progress ? `${(progress.total / progress.max) * 100}%` : 0 }}
+                />
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="pt-4 short:pt-3 border-t border-zinc-800/50">
